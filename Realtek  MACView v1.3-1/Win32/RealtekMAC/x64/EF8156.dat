@@ -1,0 +1,17 @@
+;Please set patch data up to 16 bytes for each line.
+;Please set 4 bytes alignment for each OTP command. Padding to high bytes.
+
+##
+;BIT 0
+;DriverNote_v4_20190514
+;Patch 12 : Fix Auto Install compatible Issue.
+;If program Spi flash enable, it is recommended to set this patch.
+ExtPatch = 00 00 00 01
+5f e6 00 04 E0 06 E0 0D E0 19 E0 02 C0 00 B8 5E
+16 06 11 04 F1 02 C0 00 B8 50 16 02 C0 00 B8 AA
+16 0C C0 00 5f e6 20 06 61 92 49 05 F1 07 C0 02
+C1 00 B9 5C 35 02 C1 00 B9 86 35 20 E4 00 D4 07
+C0 1E 74 DC 30 05 C0 00 4b e6 40 02 C1 00 B9 4A
+6B 80 CB 00 DC 00 00 00 47 D3 00 3C 16 4C 16 5A
+35 48 6B 00 40 D3 20 0F
+##

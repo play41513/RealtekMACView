@@ -1,0 +1,15 @@
+;Please set patch data up to 16 bytes for each line.
+
+##
+;BIT 0
+;Driver_Note_v5.3_20190531
+;Patch 20 : Fix Auto Install compatable Issue.
+;If program Spi Flash enable, it is recommended to set this patch.
+ExtPatch = 00 00 00 01
+5f e6 00 02 E0 0E E0 0C C0 06 61 92 49 05 F1 07
+C0 02 C1 00 B9 A4 24 02 C1 00 B9 CE 24 20 E4 00
+D4 07 C0 4f e6 20 1E 74 DC 30 05 C0 02 C1 00 B9
+A4 48 80 CB 00 DC 41 fc 26 00 a0 40 cf cd 49 43
+d3 00 a2 24 a2 48 40 d3 20 03
+##
+

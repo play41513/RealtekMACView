@@ -1,0 +1,1530 @@
+﻿// Module:
+// Notices: Copyright(c) 2018 Leno
+// Purpose:
+// Compiler: Embarcadero RAD Studio 2010
+// OS: Windows 8.1 x64
+// Version: 1.0.0
+// --------------------------------------------------------------------------
+#include <vcl.h>
+#include <vfw.h>
+#include <direct.h>
+#include <stdio.h>
+#pragma hdrstop
+
+#include "Uint1.h"
+#include "USBDevConnectionInfo.h"
+// ---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma link "Gauges"
+#pragma resource "*.dfm"
+TUSBHIDForm *USBHIDForm;
+// ---------------------------------------------------------------------------
+AnsiString FileName;
+char autoERRC, autoSTEP;
+bool G_bCheckDevInfo = false;
+bool bPlugIn = false;
+bool bStart = false;
+bool bFirstTest = true;
+
+AnsiString LOGFileTime = "";
+AnsiString LOGFile = "";
+AnsiString LOGFilePath = "";
+
+AnsiString ErrorMsg="";
+DWORD TestTime = 0;
+int g_Test_Number = 0;
+DWORD numBarcodeResult,dwLeft,dwRight;
+USBDevConnectionInfo *USBCONInfo = new USBDevConnectionInfo();
+
+__fastcall TUSBHIDForm::TUSBHIDForm(TComponent* Owner) : TForm(Owner)
+{
+
+}
+void __fastcall TUSBHIDForm::FormShow(TObject *Sender)
+{
+	//
+	Caption = APP_TITLE;
+	AnsiString SS;
+	dwLeft = plLeft->Width;
+	dwRight= 337;
+	//	SYSTEMTIME myTime; // = GetSysTime();	GetSystemTime(&myTime);	FileName.printf("log\\%02d%02d%d%02d%02d%02d.LOG", myTime.wMonth, myTime.wDay,		myTime.wYear, myTime.wHour, myTime.wMinute, myTime.wSecond);	//	FindIniFile();
+	if(FileExists("loging.log")){
+		DeleteFile("loging.log");
+	}
+
+	//
+
+	/*if(frmMsg==NULL)  frmMsg = new TfrmMsg(Application);
+	frmMsg->edtSetWorkOrderNumber->Text = edtWorkOrderNumber->Text ;
+	frmMsg->edtSetModel->Text = edtModel->Text ;
+	frmMsg->edtWorkStation->Text = edtWorkStation->Text;
+	if(frmMsg->ShowModal()== mrOk)
+	{
+		edtWorkOrderNumber->Text = frmMsg->edtSetWorkOrderNumber->Text.Trim();
+		edtEmployeeID->Text = frmMsg->edtSetEmployeeID->Text.Trim();
+		edtModel->Text = frmMsg->edtSetModel->Text.Trim();
+		edtWorkStation->Text = frmMsg->edtWorkStation->Text.Trim();
+		delete frmMsg;
+		frmMsg = NULL;
+	}
+	else
+	{
+		delete frmMsg;
+		frmMsg = NULL;
+		Close();
+	}*/
+	//LOG
+	LOGFileTime = FormatDateTime("yyyy-mm-dd", Now());
+	LOGFile = FormatDateTime("yyyy-mm-dd_hh-mm-ss", Now());
+	LOGFile = LOGFile+".LOG";
+	edtBarcodeMain->Height = 0;
+}
+// ---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::FormClose(TObject *Sender, TCloseAction &Action) {
+
+
+	if(bFirstTest)
+	{
+		DeleteFile(LOGFilePath+"\\"+LOGFile);
+	}
+
+}
+// ---------------------------------------------------------------------------
+char __fastcall TUSBHIDForm::DUTB(void) {
+	int ERRC = 0;
+	AnsiString SN, MAC,SS;
+	char macbuf[18];
+	//memoMsg->Lines->Add(BURN_DUT);
+	// -----------------------------------------------------upd flash
+	if (!ERRC)
+	{
+		labMSG(MSG_DUT_START_BURN,clYellow);
+		//MAC
+		SS = mskedBurntMacPre->Text;
+		strncpy(&macbuf[0], SS.c_str(), 6);
+		SS = mskedtBurnMac->Text;
+		strncpy(&macbuf[6], SS.c_str(), 6);
+		macbuf[17] = 0x00;
+		macbuf[16] = macbuf[11];
+		macbuf[15] = macbuf[10];
+		macbuf[14] = ' ';
+		macbuf[13] = macbuf[9];
+		macbuf[12] = macbuf[8];
+		macbuf[11] = ' ';
+		macbuf[10] = macbuf[7];
+		macbuf[9] = macbuf[6];
+		macbuf[8] = ' ';
+		macbuf[7] = macbuf[5];
+		macbuf[6] = macbuf[4];
+		macbuf[5] = ' ';
+		macbuf[4] = macbuf[3];
+		macbuf[3] = macbuf[2];
+		macbuf[2] = ' ';
+		macbuf[1] = macbuf[1];
+		macbuf[0] = macbuf[0];
+		MAC = macbuf;
+		if(UpdateRealtekCFGFile(MAC))
+		{
+			CallCommand_S(MAC_TOOL,CMD_BURN_MAC,MAC_FILE_PATH);
+			ERRC = Findfilemsg(MAC_LOG_PATH, BURN_SUCCESSFUL,0) == "" ? 0x01:0x00;
+			if(Findfilemsg(MAC_LOG_PATH, RUN_AGAIN_TOOL,0) != "")
+			{
+				Delay(1000);
+				ERRC = Findfilemsg(MAC_LOG_PATH, BURN_SUCCESSFUL,0) == "" ? 0x01:0x00;
+			}
+		}
+		else  ERRC = 0x01;
+	}
+	if (ERRC)
+	{
+		if(Findfilemsg(MAC_LOG_PATH, EFUSE_SPCAE_FULL,0) != "")
+		{
+			labMSG(MSG_EFUSE_SPACE_FULL,clRed);
+			ErrorMsg = MSG_EFUSE_SPACE_FULL;
+		}
+		else
+		{
+			labMSG(MSG_BURN_ERROR,clRed);
+			ErrorMsg = MSG_BURN_ERROR;
+		}
+	}
+	return(ERRC);
+}
+
+// ---------------------------------------------------------------------------
+char __fastcall TUSBHIDForm::DUTV(void) {
+	int ERRC =0x00;
+	UnicodeString DUT_MAC,DUT_SN,DUT_SPI_FLASH_EN,DUT_EEPROM_EN,DUT_LED_SEL_CFG;
+	UnicodeString refMac = mskedBurntMacPre->Text + mskedtBurnMac->Text;
+	labMSG(VERIFY_DUT_EFUSE,clYellow);
+	//讀取晶片info flash
+	ERRC = GetDutInfo(false,ckbBurnMAC->Checked) ? 0x00:0x40;
+	if(!ERRC)
+	{
+		//讀取成功
+		if(ckbBarcodeVerify->Checked)
+		{
+			numBarcodeResult = 0;
+			edtBarcodeMAC->Text = "";
+			edtBarcodeMain->Height = 160;
+			edtBarcodeMain->Top = USBHIDForm->Height/2 - 80;
+			lbBarcode->Caption = "請掃描MAC燒錄條碼";
+			edtBarcodeMAC->SetFocus();
+			while(true)
+			{
+				if(numBarcodeResult == BARCODE_FINISH)
+				{
+					edtBarcodeMain->Height = 0;
+					ERRC =  0x00;
+					break;
+				}
+				if(numBarcodeResult == BARCODE_CHANEL)
+				{
+					edtBarcodeMain->Height = 0;
+					ERRC =  0x40;
+					if(ERRC)
+					{
+						labMSG("(!)Barcode輸入異常",clRed);
+						ErrorMsg = "(!)Barcode輸入異常";
+					}
+					break;
+				}
+				Delay(100);
+			}
+			refMac = mskedBurntMacPre->Text + mskedtBurnMac->Text;
+		}
+	}
+	else
+		ERRC = 0xFF;
+	/*if(Findfilemsg(MAC_LOG_PATH,EFUSE_SPACE_NULL, 0)!="")
+	{
+		ERRC = 0xFF;
+		labMSG(MSG_EFUSE_SPACE_NULL,clRed);
+		ErrorMsg = MSG_EFUSE_SPACE_NULL;
+	}*/
+	//---------------------------------------------------------Verify
+	if (!ERRC)
+	{
+		if(ckbBurnMAC->Checked || ckbBarcodeVerify->Checked)
+		{   //比對SN
+			memoMsg->Lines->Add(VERIFY_DUT_SERIAL);
+			if(plUSBSN->Caption != mskedtBurnSn->Text){
+				plUSBSN->Font->Color = clRed;;
+				labMSG(MSG_SN_ERROR,clRed);
+				ErrorMsg = MSG_SN_ERROR+mskedtBurnSn->Text;
+				ERRC = 0x40;
+			}
+			//比對MAC
+			memoMsg->Lines->Add(VERIFY_DUT_MAC);
+			if(plMAC->Caption != refMac){
+				plMAC->Font->Color = clRed;
+				labMSG(MSG_MAC_ERROR,clRed);
+				ErrorMsg += MSG_MAC_ERROR+refMac;
+				ERRC = 0x40;
+			}
+		}
+		//
+		labMSG(VERIFY_DUT_EFUSE,clYellow);
+		memoMsg->Lines->Add(VERIFY_DUT_EFUSE);
+		if(plSPI_FLASH_EN->Caption != edtSPI_FLASH_EN->Text){
+			plSPI_FLASH_EN->Font->Color = clRed;
+			plSetting_SPI_FLASH_EN->Color = clRed;
+			labMSG(MSG_SPI_FLASH_EN_ERROR,clRed);
+			ErrorMsg +=MSG_SPI_FLASH_EN_ERROR+plSPI_FLASH_EN->Caption;
+			ERRC = 0x40;
+		}
+		if(plEEPROM_EN->Caption != edtEEPROM_EN->Text){
+			plEEPROM_EN->Font->Color = clRed;
+			plSetting_EEPROM_EN->Color = clRed;
+			labMSG(MSG_EEPROM_EN_ERROR,clRed);
+			ErrorMsg +=MSG_EEPROM_EN_ERROR+plEEPROM_EN->Caption;
+			ERRC = 0x40;
+		}
+		if(plLED_SEL_CFG->Caption != edtLED_SEL_CFG->Text){
+			plLED_SEL_CFG->Font->Color = clRed;
+			plSetting_LED_SEL_CFG->Color = clRed;
+			labMSG(MSG_LED_SEL_CFG_ERROR,clRed);
+			ErrorMsg +=MSG_LED_SEL_CFG_ERROR+plLED_SEL_CFG->Caption;
+			ERRC = 0x40;
+		}
+		if(plEFUSE_DOCKING->Caption != edtDocking->Text){
+			plEFUSE_DOCKING->Font->Color = clRed;
+			labMSG(MSG_DOCKING_ERROR,clRed);
+			ErrorMsg +=MSG_DOCKING_ERROR+plEFUSE_DOCKING->Caption;
+			ERRC = 0x40;
+		}
+		if(!DUTV_Efuse())
+		{
+			lblStatus->Font->Size = 18;
+			labMSG(MSG_EFUSE_ERROR,clRed);
+			ErrorMsg +=MSG_EFUSE_ERROR;
+			ERRC = 0x40;
+        }
+		//
+		if(!ERRC)
+		{
+			labMSG(MSG_VERIFY_FINISH,clYellow);
+		}
+	}
+	return(ERRC);
+}
+// ---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::btnAutoTestClick(TObject *Sender) {
+	if(btnAutoTest->Caption=="Start")
+	{
+		g_Test_Number = 0;
+		if(edtSPI_FLASH_EN->Text == ""
+			|| edtEEPROM_EN->Text == ""
+			|| edtLED_SEL_CFG->Text == ""
+			|| edtDocking->Text == "")
+			MessageBoxA(NULL,MSG_LOAD_ERROR.c_str(),"WARNING", MB_ICONEXCLAMATION);
+		else
+		{
+			AnsiString Auto = ckbAutoIncrease->Checked ? "true":"false";
+			AnsiString burn_mac = ckbBurnMAC->Checked ? "true":"false";
+			AnsiString barcode_burn = ckbBarcode->Checked ? "true":"false";
+			AnsiString barcode_verify = ckbBarcodeVerify->Checked ? "true":"false";
+			AnsiString sn = mskedtBurnSn->Text;
+			AnsiString mac = mskedBurntMacPre->Text+mskedtBurnMac->Text;
+			AnsiString Setting ="[自動跳號] "+Auto
+								+"[燒錄MAC] "+burn_mac+"\r\n"
+								+"[SN] "+sn+"[MAC] "+mac
+								+"[Barcode MAC燒錄]"+barcode_burn
+								+"[Barcode MAC驗證]"+barcode_verify
+								+"[SPI_FLASH_EN]"+edtSPI_FLASH_EN->Text
+								+"[EEPROM_EN]"+edtEEPROM_EN->Text
+								+"[LED_SEL_CFG]"+edtLED_SEL_CFG->Text
+								+"[DOCKING]"+edtDocking->Text;
+			writeLOG(Setting,true);
+
+			SetUIEnabled(false,false);
+			labMSG(MSG_WAIT_DUT,clSkyBlue);
+			btnAutoTest->Caption = "Stop";
+			bStart = true; //Timer測試FUNCTION啟動
+		}
+	}
+	else
+	{
+		bStart = false;
+
+		SetUIEnabled(true,false);
+		ckbBarcodeClick(NULL);
+		ckbBarcodeVerifyClick(NULL);
+		btnAutoTest->Caption="Start";
+		bPlugIn = false;
+	}
+}
+
+// ---------------------------------------------------------------------------
+void TUSBHIDForm::Realtek_Chip_Burn()
+{
+	DWORD TimeOUT = 0;
+	while(autoSTEP)
+	{
+		Delay(200);
+		int kind;
+		if(btnAutoTest->Caption=="Start")
+		{
+			labMSG(MSG_WAIT_DUT,clSkyBlue);
+			break;
+		}
+		if(!G_bCheckDevInfo)
+		{
+			switch(autoSTEP)
+			{
+				case GET_DEV_KIND:
+					if(FindDevice())
+					{
+						lblStatus->Font->Size = 32;
+						btnAutoTest->Enabled = false;
+						ErrorMsg = "PASS";
+						autoERRC = 0;
+						autoSTEP = USB3_CHECK;
+						memoMsg->Lines->Clear();
+						labMSG(MSG_DUT_READY,clYellow);
+						/*if(ckbBurnMAC->Checked)
+						  autoSTEP = DEV_BURN;
+						else autoSTEP = BURN_VERIFY;  */
+					}
+					break;
+				case USB3_CHECK:
+					if(CheckChipUSB3())
+					{
+						if(ckbBurnMAC->Checked)
+						  autoSTEP = DEV_BURN;
+						else autoSTEP = BURN_VERIFY;
+					}
+					else
+					{
+						autoERRC = 0x40;
+						labMSG(MSG_USB3_ERROR,clRed);
+						ErrorMsg = MSG_USB3_ERROR;
+						autoSTEP = BURN_RESULT;
+					}
+					break;
+				case DEV_BURN:
+						labMSG(MSG_DUT_READY_BURN,clYellow);
+						if(ckbBarcode->Checked)
+						{
+							numBarcodeResult = 0;
+							edtBarcodeMAC->Text = "";
+							edtBarcodeMain->Height = 160;
+							edtBarcodeMain->Top = USBHIDForm->Height/2 - 80;
+							lbBarcode->Caption = "請掃描MAC燒錄條碼";
+							edtBarcodeMAC->SetFocus();
+							while(true)
+							{
+								if(numBarcodeResult == BARCODE_FINISH)
+								{
+									edtBarcodeMain->Height = 0;
+									autoERRC = DUTB();
+									break;
+								}
+								if(numBarcodeResult == BARCODE_CHANEL)
+								{
+									edtBarcodeMain->Height = 0;
+									autoERRC =  0x40;
+									labMSG("(!)Barcode輸入異常",clRed);
+									ErrorMsg = "(!)Barcode輸入異常";
+									break;
+								}
+								Delay(100);
+							}
+						}
+						else
+							autoERRC = DUTB();
+
+						if (autoERRC) {
+							autoSTEP = BURN_RESULT;
+							break;
+						}
+
+					autoSTEP = BURN_VERIFY;
+					break;
+				case BURN_VERIFY:
+					labMSG(MSG_DUT_READY_VERIFY,clYellow);
+					autoERRC = DUTV();
+					autoSTEP = BURN_RESULT;
+					TimeOUT = GetTickCount()+3000;
+					break;
+				case BURN_RESULT:
+					if(!FindDevice()&&GetTickCount()>TimeOUT)
+					{
+						labMSG(MSG_NOT_FIND_DUT,clRed);
+						ErrorMsg = MSG_NOT_FIND_DUT;
+						autoERRC = 0x40;
+					}
+					if(!writeLOG(ErrorMsg,false)) autoERRC = 0x40;
+
+					if (autoERRC) {
+						if(lblStatus->Color!= clRed)
+						{
+							labMSG(MSG_ERROR,clRed);
+							ErrorMsg = MSG_ERROR;
+						}
+					}
+					else {
+						labMSG("PASS",clGreen);
+						m_bAutoIncrease = true;
+					}
+					bFirstTest = false;
+					autoSTEP = BURN_END;
+
+					break;
+				case BURN_END:
+					if(autoERRC){
+						MessageBeep(MB_ICONERROR);
+					}else{
+						MessageBeep(MB_OK);
+					}
+					btnAutoTest->Enabled = true;
+					autoSTEP = BURN_OVER;
+					break;
+			} //End switch case.
+		}
+	}
+}
+
+void TUSBHIDForm::AutoIncrease(){
+	AnsiString SS, SD, SN, MAC;
+	int tmp;
+
+	if(ckbAutoIncrease->Checked && m_bAutoIncrease && !ckbBarcode->Checked) {
+		m_bAutoIncrease = false;
+
+		tmp = mskedtBurnSn->Text.ToInt();
+		if(ckbBurnMAC->Checked )
+		{
+			tmp++;
+			SS = IntToStr(tmp);
+			SD = "";
+
+			for (int j = 0; j < (6 - SS.Length()); j++) {
+				SD += "0";
+			}
+
+			SD += SS.c_str();
+			mskedtBurnSn->Text = SD;
+		}
+		tmp = HexToInt(mskedtBurnMac->Text);
+		if(ckbBurnMAC->Checked )
+		{
+			tmp++;
+			SD = IntToHex(tmp, 6);
+			mskedtBurnMac->Text = SD;
+		}
+	}
+}
+//---------------------------------------------------------------------------
+bool TUSBHIDForm::GetDutInfo(bool bLOAD,bool bBurnVerify)
+{
+	btnAutoTest->Enabled = false;
+	ClearDevInfo(bLOAD);
+	labMSG(MSG_GETTING_DUT_DATA,clYellow);
+
+	bool bResult = true;
+	G_bCheckDevInfo = true;
+	AnsiString MAC,SN;
+	if(!bBurnVerify)
+	{    //Get DUT eFuse Data
+		DeleteFile(MAC_LOG_PATH);
+		CallCommand_S(MAC_TOOL, CMD_GET_DEV_DATA, MAC_FILE_PATH);
+		if(Findfilemsg(MAC_LOG_PATH, RUN_AGAIN_TOOL,0) != "")
+			CallCommand_S(MAC_TOOL, CMD_GET_DEV_DATA, MAC_FILE_PATH);
+		if(Findfilemsg(MAC_LOG_PATH, ANSI_NOT_FIND_DUT,0) != ""
+			||Findfilemsg(MAC_LOG_PATH,BURN_SUCCESSFUL, 0)=="")
+		{
+
+			for(int i =0;i<3;i++)
+			{
+				labMSG(MSG_GETTING_DUT_DATA+AnsiString(i+1),clYellow);
+				Delay(1000);
+				CallCommand_S(MAC_TOOL, CMD_GET_DEV_DATA, MAC_FILE_PATH);
+				if(Findfilemsg(MAC_LOG_PATH, BURN_SUCCESSFUL,0) != "")
+					break;
+			}
+		}
+	}
+	AnsiString MSG;
+	//
+	if(Findfilemsg(MAC_LOG_PATH,BURN_SUCCESSFUL, 0)!="")
+	{
+		if(Findfilemsg(MAC_LOG_PATH,EFUSE_SPACE_NULL, 0)!=""&&bLOAD)
+				MB_WARNING(NULL,MSG_EFUSE_SPACE_NULL.c_str());
+		//NODEID
+		MSG = Findfilemsg(MAC_LOG_PATH, "NODEID =", 0);
+		if(MSG.Length())
+		{
+			MAC = AnsiString(MSG).SubString(10,17);
+			MAC = StringReplace(MAC, " ", "", TReplaceFlags()<<rfReplaceAll);
+			plMAC->Caption = MAC;
+		}
+		else plMAC->Caption = "000000000000";
+		// SPI_FLASH_EN
+		MSG = Findfilemsg(MAC_LOG_PATH, "SPI_FLASH_EN =", 0);
+		if(!MSG.Length()) MSG = "SPI_FLASH_EN = 00";
+		plSPI_FLASH_EN->Caption = AnsiString(MSG).SubString(22,2);
+		if(bLOAD)
+		{
+			edtSPI_FLASH_EN->Text = plSPI_FLASH_EN->Caption;
+			ckbSPI_FLASH_EN->Caption = edtSPI_FLASH_EN->Text=="01" ? "√":"";
+		}
+		// SPI_EEPROM_EN
+		MSG = Findfilemsg(MAC_LOG_PATH, "EFUSE_EEPROM_EN =", 0);
+		if(!MSG.Length()) MSG = "EFUSE_EEPROM_EN = 00";
+		plEEPROM_EN->Caption = AnsiString(MSG).SubString(19,2);
+		if(bLOAD)
+		{
+			edtEEPROM_EN->Text = plEEPROM_EN->Caption;
+			ckbEEPROM_EN->Caption = edtEEPROM_EN->Text=="01" ? "√":"";
+		}
+		// LED_SEL_CFG
+		MSG = Findfilemsg(MAC_LOG_PATH, "LED_SEL_CFG =", 0);
+		MSG = MSG.Delete(1,MSG.Pos("= "));
+		MSG = StringReplace(MSG, " ", "", TReplaceFlags()<<rfReplaceAll);
+		plLED_SEL_CFG->Caption = AnsiString(MSG);
+		{
+			if(bLOAD) edtLED_SEL_CFG->Text = plLED_SEL_CFG->Caption;
+			edtSetLED_SEL_CFG->Text = edtLED_SEL_CFG->Text;
+		}
+		// EFUSE_DOCKING
+		MSG = Findfilemsg(MAC_LOG_PATH, "EFUSE_DOCKING =", 0);
+		if(!MSG.Length()) MSG = "EFUSE_DOCKING = 00";
+		plEFUSE_DOCKING->Caption = AnsiString(MSG).SubString(17,2);
+		if(bLOAD) edtDocking->Text = plEFUSE_DOCKING->Caption;
+		// SN
+		MSG = Findfilemsg(MAC_LOG_PATH, "SN =", 0);
+		if(MSG.Length())
+		{
+			MSG = MSG.Delete(1,MSG.Pos("= "));
+			MSG = StringReplace(MSG, " ", "", TReplaceFlags()<<rfReplaceAll);
+			plUSBSN->Caption = MSG;
+		}
+	}
+	else
+	{
+		MB_WARNING(NULL,MSG_NOT_FIND_DUT.c_str());
+		bResult = false;
+	}
+
+
+	G_bCheckDevInfo = false;
+	if(btnSet->Name.Pos("Enter"))
+		btnAutoTest->Enabled = true;
+
+	return bResult;
+}
+//---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::Timer1Timer(TObject *Sender)
+{
+	if(btnAutoTest->Caption.Pos("Start")&&btnAutoTest->Enabled==false&&lblStatus->Caption=="等候中"&&btnSet->Caption.Pos("Enter"))
+	{
+		bStart = false;
+
+		//btnLoadDutVersion->Enabled = true;
+		//mskedtBurnSn->Enabled = true;
+		if(!ckbBarcode->Checked)
+		{
+			ckbAutoIncrease->Enabled = true;
+			ckbBurnMAC->Enabled = true;
+		}
+		mskedBurntMacPre->Enabled = true;
+		mskedtBurnMac->Enabled = true;
+		btnGetDutVersion->Enabled = true;
+		btnAutoTest->Enabled = true;
+		bPlugIn = false;
+	}
+	if(bStart)
+	{
+		bStart = false;
+		try
+		{
+			if(USBCONInfo->DevNameGetVPID("vid_0bda"))
+			{
+				if(!bPlugIn)
+				{
+					TestTime = GetTickCount();
+					autoSTEP = GET_DEV_KIND;
+					Realtek_Chip_Burn();
+				}
+				bPlugIn = true;
+			}
+			else
+			{
+				if(m_bAutoIncrease) AutoIncrease();
+				ClearDevInfo(false);
+				labMSG("等候中",clSkyBlue);
+				memoMsg->Text = "No matching devices found";
+				bPlugIn = false;
+			}
+		}
+		catch(...)
+		{
+			//
+		}
+		bStart = true;
+	}
+}
+//---------------------------------------------------------------------------
+void TUSBHIDForm::ClearDevInfo(bool bLOAD)
+{
+	plUSBSN->Caption 		= "";
+	plMAC->Caption 			= "";
+	plSPI_FLASH_EN->Caption = "";
+	plEEPROM_EN->Caption 	= "";
+	plLED_SEL_CFG->Caption 	= "";
+	plEFUSE_DOCKING->Caption 	= "";
+	plChipName->Caption = "Realtek";
+	lblStatus->Font->Size = 32;
+
+	plUSBSN->Font->Color 		= clBlue;
+	plMAC->Font->Color 			= clBlue;
+	plSPI_FLASH_EN->Font->Color = clBlue;
+	plEEPROM_EN->Font->Color 	= clBlue;
+	plLED_SEL_CFG->Font->Color 	= clBlue;
+	plEFUSE_DOCKING->Font->Color 	= clBlue;
+
+	plSetting_SPI_FLASH_EN->Color 		= clWhite;
+	plSetting_EEPROM_EN->Color 			= clWhite;
+	plSetting_NO_REMOTE_WAKEUP->Color 	= clWhite;
+	plSetting_ECM_FLOW_CONTROL->Color 	= clWhite;
+	plSetting_LAN_DIS->Color 			= clWhite;
+	plSetting_LINK_OK->Color 			= clWhite;
+	plSetting_GFC->Color 				= clWhite;
+	plSetting_LED_SEL_CFG->Color 		= clWhite;
+
+	if(bLOAD)
+	{
+		edtSPI_FLASH_EN->Text 	= "";
+		edtEEPROM_EN->Text 		= "";
+		edtLED_SEL_CFG->Text 	= "";
+		edtDocking->Text 		= "";
+    }
+}
+//---------------------------------------------------------------------------
+bool TUSBHIDForm::writeLOG(AnsiString Msg,bool bAction) {
+	AnsiString time = FormatDateTime("mm-dd-yyyy hh:nn:ss", Now());
+	AnsiString SS;
+	if(bAction)
+	{   //創LOG資料夾
+		LOGFilePath = "C:\\ASMP\\log\\Realtek BurnTool\\"+LOGFileTime+"\\";
+		if(!FileExists(LOGFilePath.c_str())){
+			_mkdir( "C:\\ASMP\\");
+			_mkdir( "C:\\ASMP\\log\\" );
+			_mkdir( "C:\\ASMP\\log\\Realtek BurnTool\\" );
+			_mkdir( LOGFilePath.c_str());
+		}
+		SaveLogLine(LOGFilePath+LOGFile, Msg);
+		//
+		SS = "\r\n==========[設定值]===============\r\n";
+	}
+	else
+	{
+		AnsiString sn="NULL",mac="NULL",spi_flash_en="NULL",efuse_eeprom_en="NULL",efuse_led_sel_cfg="NULL"
+					,efuse_docking="NULL",TestNUM="";
+		double test_time = double(GetTickCount() - TestTime)/(double)1000;
+		spi_flash_en 		= plSPI_FLASH_EN->Caption;
+		efuse_eeprom_en 	= plEEPROM_EN->Caption;
+		efuse_led_sel_cfg	= plLED_SEL_CFG->Caption;
+		efuse_docking		= plEFUSE_DOCKING->Caption;
+		sn = plUSBSN->Caption;
+		mac = plMAC->Caption;
+
+		g_Test_Number++;
+		TestNUM.sprintf("%04d",g_Test_Number);
+		if(Msg=="PASS")
+			SS = TestNUM+" [PASS] "+time + " [SN]"+sn+" [MAC]"+mac+" [SPI_FLASH_EN]"+spi_flash_en+" [EFUSE_EEPROM_EN]"+efuse_eeprom_en+" [EFUSE_LED_SEL_CFG]"+efuse_led_sel_cfg+" [EFUSE_DOCKING]"+efuse_docking+" [TEST-TIME]"+AnsiString(test_time)+"\r\n";
+		else
+			SS = TestNUM+" [FAIL] "+time + " [SN]"+sn+" [MAC]"+mac+" [SPI_FLASH_EN]"+spi_flash_en+" [EFUSE_EEPROM_EN]"+efuse_eeprom_en+" [EFUSE_LED_SEL_CFG]"+efuse_led_sel_cfg+" [EFUSE_DOCKING-SN]"+efuse_docking+" [TEST-TIME]"+AnsiString(test_time)+" [ERROR]"+Msg+"\r\n";
+	}
+	AnsiString path = LOGFilePath+"\\"+LOGFile;
+	SaveLogLine(path, SS);
+	//
+	return true;
+}
+
+void  TUSBHIDForm::SaveLogLine(AnsiString FileName,AnsiString FileLine)
+{
+	FILE * fp;
+	fp = fopen(FileName.c_str(),"a+");
+	fseek( fp, 0, SEEK_END);
+	fwrite(FileLine.c_str(),FileLine.Length(),1,fp); //寫入一筆資料
+	fclose(fp);
+}
+AnsiString TUSBHIDForm::GetStringLine(AnsiString String,AnsiString Keyword) {
+	char *pch = strtok(String.c_str(), "\r\n");
+	TStringList* NList = new TStringList();
+	AnsiString SS;
+	while (pch != NULL)
+	{
+		SS = AnsiString(pch);
+
+		if(SS.Pos(Keyword))
+		{
+			delete NList;
+			return SS;
+		}
+		pch = strtok(NULL, "\r\n");
+	}
+	delete NList;
+	return "";
+}
+void __fastcall TUSBHIDForm::LogClick(TObject *Sender)
+{
+	AnsiString path = LOGFilePath+"\\"+LOGFile;
+	ShellExecute(NULL,NULL,path.c_str(),NULL,NULL,SW_SHOW);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TUSBHIDForm::LOGFILEClick(TObject *Sender)
+{
+	ShellExecute(NULL,NULL,LOGFilePath.c_str(),NULL,NULL,SW_SHOW);
+}
+//---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::edtWorkOrderNumberExit(TObject *Sender)
+{
+	if(edtWorkOrderNumber->Text=="")
+		edtWorkOrderNumber->Text = "000-00000000000";
+}
+//---------------------------------------------------------------------------
+
+int __fastcall TUSBHIDForm::HexToInt(AnsiString HexStr) {
+	int iIndex, iHex, totalChar;
+	TCHAR HexChar[8];
+
+	HexStr.UpperCase(); // 把字串轉成全大寫
+
+	_tcscpy_s(HexChar, 8, HexStr.c_str());
+	iHex = 0;
+	totalChar = HexStr.Length(); // 取得字串的長度
+	for (iIndex = 0; iIndex < totalChar; iIndex++) {
+		iHex <<= 4;
+		if ((HexChar[iIndex] >= 0x30) && (HexChar[iIndex] <= 0x39)) {
+			iHex += (HexChar[iIndex] - 0x30); // 把 0 - 9 字元轉成數字
+		}
+		else if ((HexChar[iIndex] >= 0x41) && (HexChar[iIndex] <= 0x46)) {
+			iHex += (HexChar[iIndex] - 0x37); // ­把 A - F 字元轉成數字
+		}
+		else {
+			iHex = 0;
+			break;
+		}
+	}
+	return iHex;
+}
+//---------------------------------------------------------------------------
+void TUSBHIDForm::Delay(DWORD iMilliSeconds) // 原版delay time 用在thread裡面
+{
+	DWORD iStart;
+	iStart = GetTickCount();
+	while (GetTickCount() - iStart <= iMilliSeconds)
+		Application->ProcessMessages();
+}
+//---------------------------------------------------------------------------
+bool TUSBHIDForm::Analyze_USBView(AnsiString VID,AnsiString PID)
+{
+	if(FileExists("USB_INFO.txt")) DeleteFile("USB_INFO.txt");
+	DosCommand("Taskkill /im DisplayUSB.exe /F"); //有時USBVIEW無法完全關閉
+	DosCommand("DisplayUSB.exe SAVE");
+	DosCommand("Taskkill /im DisplayUSB.exe /F"); //有時USBVIEW無法完全關閉
+	if(FileExists("USB_INFO.txt"))
+	{
+		AnsiString filename = "USB_INFO.txt";
+		ifstream lanfile(filename.c_str());
+		std::string filemsg;
+		if (lanfile.is_open())
+		{
+			while (!lanfile.eof())
+			{
+				getline(lanfile, filemsg);
+				if(strstr(filemsg.c_str(),("wVendorID :0x"+VID).c_str()))//確認裝置VID
+				{
+					getline(lanfile, filemsg);
+					if(strstr(filemsg.c_str(),("wProductID :0x"+PID).c_str()))//確認裝置PID
+					{
+						while(!lanfile.eof())
+						{
+							getline(lanfile, filemsg);
+							if(strstr(filemsg.c_str(),"wMaxPacketSize "))
+							{
+								if(atoi(filemsg.substr(20,4).c_str())==400)
+								{
+									 lanfile.close();
+									 DeleteFile("USB_INFO.txt");
+									 return true;
+								}
+								else if(atoi(filemsg.substr(20,41).c_str())==200)
+								{
+									 lanfile.close();
+									 DeleteFile("USB_INFO.txt");
+									 return false;
+								}
+							}
+						}
+					}
+				}
+			}
+			lanfile.close();
+			DeleteFile("USB_INFO.txt");
+			return false;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	return false;
+}
+bool TUSBHIDForm::CheckChipUSB3()
+{
+	AnsiString Resultdata = DosCommand("devcon find \"\*usb\\vid_0bda\*\"");
+	char *pch = strtok(Resultdata.c_str(), "\r\n");
+	TStringList* NList = new TStringList();
+	AnsiString VPID = "";
+	bool bHave = false;
+	bool bPass = false;
+	while (pch != NULL)
+	{
+		VPID = AnsiString(pch);
+		if(VPID.Pos("VID"),VPID.Pos("Realtek USB"))
+		{
+			VPID = VPID.SubString(VPID.Pos("VID"),17);
+			for(int x =0;x<NList->Count;x++)
+			{
+				if(strstr(AnsiString(NList->Strings[x]).c_str(),VPID.c_str()))
+				{
+					bHave = true;
+					break;
+				}
+			}
+			if(!bHave)
+			{
+				NList->Add(VPID);
+				bPass = USBCONInfo->GetDevUSB(VPID.SubString(5,4),VPID.SubString(14,4));
+			}
+			if(!bPass) break;
+		}
+		pch = strtok(NULL, "\r\n");
+	}
+	delete NList;
+	return bPass;
+}
+bool TUSBHIDForm::UpdateRealtekCFGFile(AnsiString MAC)
+{
+	// 修改CFG檔的設定值
+	// 讀取CFG檔案內容
+	AnsiString CFGtotalmsg = ""; // 檔案內容
+	bool bW;
+	AnsiString Temp;
+	ifstream imsgfile(AnsiString(MAC_FILE_PATH+g_CFGFile).c_str());
+	std::string CFGmsg;
+	if (imsgfile.is_open()) {
+		while (!imsgfile.eof()) {
+			getline(imsgfile, CFGmsg);
+			bW = false;
+			if(MAC=="")
+			{
+				for(int i =0;i<9;i++)
+				{
+					if (strstr(CFGmsg.c_str(), zCharacteristics[i].c_str()))
+					{
+						TPanel* ckb = (TPanel*)FindComponent("ckb"+zCharacteristics[i]);
+						Temp = ckb->Caption.Pos("√")?"01":"00";
+						CFGtotalmsg += (zCharacteristics[i]+" = "+ Temp + "\n");
+						bW = true;
+						break;
+					}
+
+				}
+				if (strstr(CFGmsg.c_str(), "LED_SEL_CFG")&&!strstr(CFGmsg.c_str(), ";")) {
+					Temp = edtSetLED_SEL_CFG->Text.SubString(1,2)
+							+" "
+							+edtSetLED_SEL_CFG->Text.SubString(3,2);
+					CFGtotalmsg += "LED_SEL_CFG = "+ Temp + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "LINK_CAPA")) {
+					Temp = edtSetNWAY_LINK_CAPA->Text;
+					CFGtotalmsg += "LINK_CAPA = "+ Temp + "\n";
+				}
+				else if(!bW)
+					CFGtotalmsg += AnsiString(CFGmsg.c_str()) + "\n";
+			}
+			else if(MAC.Length()==17)
+			{
+				if (strstr(CFGmsg.c_str(), "NODEID = ")) {
+					CFGtotalmsg += "NODEID = " + MAC + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "SN = ")) {
+					CFGtotalmsg += "SN = "
+						+ AnsiString(mskedtBurnSn->Text).SubString(1,2)+" "
+						+ AnsiString(mskedtBurnSn->Text).SubString(3,2)+" "
+						+ AnsiString(mskedtBurnSn->Text).SubString(5,2)
+						+"\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "DOCKING = ")) {
+					Temp = ckbRealtekDocking->Checked?"01":"00";
+					CFGtotalmsg += "DOCKING = " + Temp + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "SPI_FLASH_EN = ")) {
+					Temp = ckbSPI_FLASH_EN->Caption.Pos("√")?"01":"00";
+					CFGtotalmsg += "SPI_FLASH_EN = " + Temp + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "EEPROM_EN = ")) {
+					Temp = ckbEEPROM_EN->Caption.Pos("√")?"01":"00";
+					CFGtotalmsg += "EEPROM_EN = " + Temp + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "NO_REMOTE_WAKEUP = ")) {
+					Temp = ckbNO_REMOTE_WAKEUP->Caption.Pos("√")?"01":"00";
+					CFGtotalmsg += "NO_REMOTE_WAKEUP = " + Temp + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "ECM_FLOW_CTRL = ")) {
+					Temp = ckbECM_FLOW_CONTROL->Caption.Pos("√")?"01":"00";
+					CFGtotalmsg += "ECM_FLOW_CTRL = " + Temp + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "LAN_DIS = ")) {
+					Temp = ckbLAN_DIS->Caption.Pos("√")?"01":"00";
+					CFGtotalmsg += "LAN_DIS = " + Temp + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "LINK_OK = ")) {
+					Temp = ckbLINK_OK->Caption.Pos("√")?"01":"00";
+					CFGtotalmsg += "LINK_OK = " + Temp + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "GPHY_FLOW_CTRL = ")) {
+					Temp = ckbGPHY_FLOW_CONTROL->Caption.Pos("√")?"01":"00";
+					CFGtotalmsg += "GPHY_FLOW_CTRL = " + Temp + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "LED_SEL_CFG = ")
+					&&!strstr(CFGmsg.c_str(), ";")) {
+					Temp = edtSetLED_SEL_CFG->Text.SubString(1,2)+" "+edtSetLED_SEL_CFG->Text.SubString(3,2);
+					CFGtotalmsg += "LED_SEL_CFG = " + Temp + "\n";
+				}
+				else if (strstr(CFGmsg.c_str(), "edtSetNWAY_LINK_CAPA = ")) {
+					Temp = edtSetNWAY_LINK_CAPA->Text;
+					CFGtotalmsg += "edtSetNWAY_LINK_CAPA = " + Temp + "\n";
+				}
+				else
+					CFGtotalmsg += AnsiString(CFGmsg.c_str()) + "\n";
+			}
+			else
+			{
+				imsgfile.close();
+				return false;
+			}
+			if (strstr(CFGmsg.c_str(), "VERSION_INFO"))
+				break;
+		}
+		imsgfile.close();
+	}
+	// 寫入檔案
+	ofstream omsgfile(AnsiString(MAC_FILE_PATH+g_CFGFile).c_str());
+	omsgfile << CFGtotalmsg.c_str();
+	omsgfile.close();
+	return true;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TUSBHIDForm::btnRealtekLoadClick(TObject *Sender)
+{
+	SetUIEnabled(false,false);
+
+	TBitBtn* btn = (TBitBtn*)Sender;
+	if(btn->Name.Pos("Load"))
+		GetDutInfo(true,false);
+	else GetDutInfo(false,false);
+
+	SetUIEnabled(true,false);
+	labMSG(MSG_WAIT_DUT,clSkyBlue);
+}
+//---------------------------------------------------------------------------
+bool TUSBHIDForm::CallCommand_S(AnsiString filename, AnsiString cmd,
+	AnsiString path) { // 下Command指令 BY ShellExecuteEx
+	SHELLEXECUTEINFOA ShExecInfo = {
+		0
+	};
+	ShExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
+	ShExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
+	ShExecInfo.lpFile = filename.c_str();
+	ShExecInfo.lpParameters = cmd.c_str();
+	ShExecInfo.lpDirectory = path.c_str();
+	ShExecInfo.nShow = SW_HIDE;
+	ShellExecuteExA(&ShExecInfo);
+	DWORD dw = WaitForSingleObject(ShExecInfo.hProcess, 10000);
+	if(dw == WAIT_TIMEOUT)
+		return false;
+	return true;
+}
+AnsiString TUSBHIDForm::Findfilemsg(AnsiString filename, AnsiString findmsg,
+	int rownum) { // 找檔案找到字串行回傳幾行後的字串
+	ifstream lanfile(filename.c_str());
+	std::string filemsg;
+	if (lanfile.is_open()) {
+		while (!lanfile.eof()) {
+			getline(lanfile, filemsg);
+			if (strstr(filemsg.c_str(), findmsg.c_str())) {
+				for (int i = 0; i < rownum; i++)
+					getline(lanfile, filemsg);
+				lanfile.close();
+				return(AnsiString)filemsg.c_str();
+			}
+		}
+		lanfile.close();
+		return "";
+	}
+	else
+		return "";
+}
+bool TUSBHIDForm::FindDevice()
+{
+	g_CFGFile = "";
+	CallCommand_S(MAC_TOOL, CMD_GET_DEV, MAC_FILE_PATH);
+	AnsiString Tempmsg = Findfilemsg(MAC_LOG_PATH, "Realtek USB", 0);
+	if(Tempmsg.Pos("RTL8153VC"))
+	{
+		if(!g_CFGFile.Pos("EF8153C.CFG"))
+			UpdateRealtekCFGFile("");
+		g_CFGFile = "EF8153C.CFG";
+		plChipName->Caption =
+			Tempmsg.SubString(Tempmsg.Pos("Realtek USB"),Tempmsg.Pos(" (")-Tempmsg.Pos("Realtek USB"));
+	}
+	else if(Tempmsg.Pos("RTL8153AD"))
+	{
+		if(!g_CFGFile.Pos("EF8153B.CFG"))
+			UpdateRealtekCFGFile("");
+		g_CFGFile = "EF8153B.CFG";
+		plChipName->Caption =
+			Tempmsg.SubString(Tempmsg.Pos("Realtek USB"),Tempmsg.Pos(" (")-Tempmsg.Pos("Realtek USB"));
+	}
+	else
+		return false;
+	return true;
+}
+
+
+
+void __fastcall TUSBHIDForm::btnSetClick(TObject *Sender)
+{
+	if(btnSet->Caption == "Enter")
+	{
+		if(edtPassWord->Text.UpperCase() == PASSWORD)
+		{
+			edtPassWord->Text ="";
+			plCharacteristics->Height = 410;
+			btnSet->Caption		 = "END";
+			SetUIEnabled(true,true);
+		}
+		else if(edtPassWord->Text.UpperCase() == MEMOWORD)
+		{
+			edtPassWord->Text ="";
+			plCharacteristics->Height = plCharacteristics->Height==410?71:410;
+		}
+		else edtPassWord->Font->Color = clRed;
+	}
+
+	else
+	{
+		btnSet->Caption	  	= "Enter";
+		edtPassWord->Text 	= "";
+		SetUIEnabled(false,true);
+		SetIniFile();
+	}
+}
+//---------------------------------------------------------------------------
+//UI Change Function
+//---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::mskedtBurnMacChange(TObject *Sender)
+{
+	//mskedtBurnSn->Text = mskedtBurnMac->Text;
+}
+//---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::ckbLPM_BESL_ENClick(TObject *Sender)
+{
+	TPanel* ckb = (TPanel*) Sender;
+	ckb->Caption = ckb->Caption.Pos("√")?"":"√";
+	if(ckb->Name.Pos("ckbSPI_FLASH_EN"))
+		edtSPI_FLASH_EN->Text = ckb->Caption.Pos("√") ? "01":"00";
+	if(ckb->Name.Pos("ckbEEPROM_EN"))
+		edtEEPROM_EN->Text = ckb->Caption.Pos("√") ? "01":"00";
+}
+//---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::edtPassWordKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
+{
+	if(Key==13)
+	{
+		btnSet->SetFocus();
+		btnSetClick(NULL);
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::edtPassWordEnter(TObject *Sender)
+{
+	if(edtPassWord->Font->Color==clRed)
+	{
+		edtPassWord->Font->Color = clBlue;
+		edtPassWord->Text = "";
+    }
+}
+//---------------------------------------------------------------------------
+void TUSBHIDForm::SetUIEnabled(bool bEnabled,bool bSet)
+{
+	if(bSet)
+	{
+		btnAutoTest->Enabled			= !bEnabled;
+		//ckbLPM_BESL_EN->Enabled 		= bEnabled;
+		ckbSPI_FLASH_EN->Enabled 		= bEnabled;
+		ckbEEPROM_EN->Enabled 			= bEnabled;
+		ckbNO_REMOTE_WAKEUP->Enabled 	= bEnabled;
+		//ckbBOS_DESC_SUPERSPEED->Enabled = bEnabled;
+		ckbECM_FLOW_CONTROL->Enabled 	= bEnabled;
+		ckbLAN_DIS->Enabled 			= bEnabled;
+		ckbLINK_OK->Enabled 			= bEnabled;
+		ckbGPHY_FLOW_CONTROL->Enabled 	= bEnabled;
+		edtSetLED_SEL_CFG->Enabled		= bEnabled;
+		edtSetNWAY_LINK_CAPA->Enabled	= bEnabled;
+		btnLoadDutVersion->Enabled 		= bEnabled;
+	}
+	else
+	{
+		btnSet->Enabled             = bEnabled;
+		//btnLoadDutVersion->Enabled 	= bEnabled;
+		if(!ckbBarcode->Checked)
+		{
+			ckbAutoIncrease->Enabled 	= bEnabled;
+			ckbBurnMAC->Enabled 		= bEnabled;
+		}
+		mskedtBurnSn->Enabled 		= bEnabled;
+		mskedBurntMacPre->Enabled 	= bEnabled;
+		mskedtBurnMac->Enabled 		= bEnabled;
+		btnGetDutVersion->Enabled 	= bEnabled;
+		edtEmployeeID->Enabled 		= bEnabled;
+		ckbBarcode->Enabled 		= bEnabled;
+		ckbBarcodeVerify->Enabled 	= bEnabled;
+		ckbRealtekDocking->Enabled 	= bEnabled;
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::ckbBarcodeVerifyClick(TObject *Sender)
+{
+	if(ckbBarcodeVerify->Checked)
+	{
+	   ckbAutoIncrease->Checked = false;
+	   ckbAutoIncrease->Enabled = false;
+	}
+	else
+	{
+	   ckbAutoIncrease->Enabled = true;
+	   ckbAutoIncrease->Enabled = ckbBarcode->Checked ? false:true;
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::ckbBarcodeClick(TObject *Sender)
+{
+	if(ckbBarcode->Checked)
+	{
+		ckbBurnMAC->Checked = true;
+		ckbBurnMAC->Enabled = false;
+		ckbAutoIncrease->Checked = false;
+		ckbAutoIncrease->Enabled = false;
+	}
+	else
+	{
+		ckbBurnMAC->Enabled = true;
+		ckbAutoIncrease->Enabled = ckbBarcodeVerify->Checked ? false:true;
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TUSBHIDForm::plSwitch1Click(TObject *Sender)
+{
+	TPanel* pl = (TPanel*)Sender;
+	if(pl->Name.Pos("1"))
+	{
+		if(pl->Caption == ">")
+		{
+			plDebug->Width = dwRight;
+			pl->Caption = "<";
+			USBHIDForm->Width += plDebug->Width;
+		}
+		else
+		{
+			USBHIDForm->Width -= plDebug->Width;
+			plDebug->Width = 0;
+			pl->Caption = ">";
+		}
+	}
+	else
+	{
+		if(pl->Caption == ">")
+		{
+			USBHIDForm->Width -= plLeft->Width;
+			plLeft->Width = 0;
+			pl->Caption = "<";
+		}
+		else
+		{
+			plLeft->Width = dwLeft;
+			pl->Caption = ">";
+			USBHIDForm->Width += plLeft->Width;
+		}
+    }
+}
+AnsiString TUSBHIDForm::DosCommand(AnsiString sCmdline)
+{
+	PROCESS_INFORMATION proc = {0}; //關於進程資訊的一個結構
+	long ret;
+	bool sPipe;
+	STARTUPINFO start = {0};
+	SECURITY_ATTRIBUTES sa = {0};
+	HANDLE hReadPipe ;
+	HANDLE hWritePipe;
+	AnsiString sOutput;
+	AnsiString sBuffer;
+	unsigned long lngBytesRead;
+	char cBuffer[256];
+	sa.nLength = sizeof(sa);
+	sa.lpSecurityDescriptor=0;
+	sa.bInheritHandle = TRUE;
+	sPipe=::CreatePipe(&hReadPipe, &hWritePipe,&sa, 0); //創建管道
+	if (!sPipe)
+	{
+	sOutput="CreatePipe failed. Error: "+AnsiString(GetLastError());
+	//memoMsg->Lines->Add("CreatePipe failed. Error: "+AnsiString(GetLastError()));
+	return sOutput;
+	}
+	start.cb = sizeof(STARTUPINFOA);
+	start.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+	start.hStdOutput = hWritePipe;
+	start.hStdError = hWritePipe;
+	start.wShowWindow = SW_HIDE;
+	sBuffer = sCmdline;
+	ret =::CreateProcess(0, sBuffer.c_str(), &sa, &sa, TRUE, NORMAL_PRIORITY_CLASS, 0, 0, &start, &proc);
+	if (ret == 0)
+	{
+	sOutput="Bad command or filename";
+	memoMsg->Lines->Add("Bad command or filename");
+	return sOutput;
+	}
+	::CloseHandle(hWritePipe);
+	if(!sCmdline.Pos("DisplayLinkUSBIOMTT.inf"))
+	{
+		DWORD dw = WaitForSingleObject(proc.hProcess, 10000);
+		if(dw == WAIT_TIMEOUT)
+		{
+			::CloseHandle(proc.hProcess);
+			::CloseHandle(proc.hThread);
+			::CloseHandle(hReadPipe);
+			return "WAIT_TIMEOUT";
+		}
+	}
+	do
+	{
+	memset(cBuffer,'\0',sizeof(cBuffer));
+	ret = ::ReadFile(hReadPipe, &cBuffer, 255, &lngBytesRead, 0);
+	//替換字串
+	for(unsigned long i=0; i< lngBytesRead; i++){
+		if(cBuffer[i] == '\0'){
+			cBuffer[i] = ' ';
+		}else if(cBuffer[i] == '\n'){
+			cBuffer[i] = ' ';
+		}
+	}
+	sBuffer=StrPas(cBuffer);
+	sOutput = sOutput+sBuffer;
+	Application->ProcessMessages();
+
+	} while (ret != 0 );
+	::CloseHandle(proc.hProcess);
+	::CloseHandle(proc.hThread);
+	::CloseHandle(hReadPipe);
+	return sOutput;
+}
+bool TUSBHIDForm::DUTV_Efuse()
+{
+	AnsiString MSG,ckbMSG;
+	bool bResult = true;
+	if(Findfilemsg(MAC_LOG_PATH,BURN_SUCCESSFUL, 0)!="")
+	{
+		// EFUSE_DOCKING
+		MSG = Findfilemsg(MAC_LOG_PATH, "EFUSE_NO_REMOTE_WAKEUP =", 0);
+		if(!MSG.Length()) MSG = "EFUSE_NO_REMOTE_WAKEUP = 00";
+		MSG = AnsiString(MSG).SubString(26,2);
+		ckbMSG = ckbNO_REMOTE_WAKEUP->Caption.Pos("√") ? "01":"00";
+		if(ckbMSG != MSG)
+		{
+			plSetting_NO_REMOTE_WAKEUP->Color = clRed;
+			bResult = false;
+        }
+
+		// EFUSE_DOCKING
+		MSG = Findfilemsg(MAC_LOG_PATH, "EFUSE_LINK_OK =", 0);
+		if(!MSG.Length()) MSG = "EFUSE_LINK_OK = 00";
+		MSG = AnsiString(MSG).SubString(17,2);
+		ckbMSG = ckbLINK_OK->Caption.Pos("√") ? "01":"00";
+		if(ckbMSG != MSG)
+		{
+			plSetting_LINK_OK->Color = clRed;
+			bResult = false;
+		}
+
+		// EFUSE_DOCKING
+		MSG = Findfilemsg(MAC_LOG_PATH, "EFUSE_LAN_DIS =", 0);
+		if(!MSG.Length()) MSG = "EFUSE_LAN_DIS = 00";
+		MSG = AnsiString(MSG).SubString(17,2);
+		ckbMSG = ckbLAN_DIS->Caption.Pos("√") ? "01":"00";
+		if(ckbMSG != MSG)
+		{
+			plSetting_LAN_DIS->Color = clRed;
+			bResult = false;
+		}
+
+		// EFUSE_DOCKING
+		MSG = Findfilemsg(MAC_LOG_PATH, "EFUSE_ECM_FLOW_CTRL =", 0);
+		if(!MSG.Length()) MSG = "EFUSE_ECM_FLOW_CTRL = 00";
+		MSG = AnsiString(MSG).SubString(23,2);
+		ckbMSG = ckbECM_FLOW_CONTROL->Caption.Pos("√") ? "01":"00";
+		if(ckbMSG != MSG)
+		{
+			plSetting_ECM_FLOW_CONTROL->Color = clRed;
+			bResult = false;
+		}
+
+		// EFUSE_DOCKING
+		MSG = Findfilemsg(MAC_LOG_PATH, "EFUSE_GPHY_FLOW_CTRL =", 0);
+		if(!MSG.Length()) MSG = "EFUSE_GPHY_FLOW_CTRL = 00";
+		MSG = AnsiString(MSG).SubString(24,2);
+		ckbMSG = ckbGPHY_FLOW_CONTROL->Caption.Pos("√") ? "01":"00";
+		if(ckbMSG != MSG)
+		{
+			plSetting_GFC->Color = clRed;
+			bResult = false;
+		}
+	}
+	else	bResult = false;
+
+	return	bResult;
+}
+void __fastcall TUSBHIDForm::edtSetLED_SEL_CFGExit(TObject *Sender)
+{
+	edtLED_SEL_CFG->Text = edtSetLED_SEL_CFG->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TUSBHIDForm::btnBarcodeChanelClick(TObject *Sender)
+{
+	numBarcodeResult = BARCODE_CHANEL;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TUSBHIDForm::edtBarcodeMACKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
+
+{
+	if(edtBarcodeMAC->Text.Length()==12&&Key==13)
+	{
+		USBHIDForm->mskedtBurnSn->Text = edtBarcodeMAC->Text.SubString(7,6);
+		USBHIDForm->mskedBurntMacPre->Text = edtBarcodeMAC->Text.SubString(1,6);
+		USBHIDForm->mskedtBurnMac->Text = edtBarcodeMAC->Text.SubString(7,6);
+		numBarcodeResult = BARCODE_FINISH;
+	}
+	else if(edtBarcodeMAC->Text.Length()<12&&Key==13)
+		edtBarcodeMAC->Text = "";
+	else if(Key == 8)
+		edtBarcodeMAC->Text = "";
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TUSBHIDForm::edtBarcodeMACChange(TObject *Sender)
+{
+	TEdit* edt=(TEdit*)Sender;
+	TCHAR HexChar[15];
+
+	edt->Text = edt->Text.UpperCase();// 把字串轉成全大寫
+	_tcscpy_s(HexChar, 15, AnsiString(edt->Text).c_str());
+	for(int i=0;i <edt->Text.Length();i++)
+	{
+		if(HexChar[i] < 0x30 || HexChar[i] > 0x39)//非數字
+		{
+			if(HexChar[i] < 0x41 || HexChar[i] > 0x46)//非大寫字母a~f
+			{
+				edtBarcodeMAC->Text =
+					edtBarcodeMAC->Text.Delete(edtBarcodeMAC->Text.Length(),1);
+            }
+		}
+	}
+	if(edtBarcodeMAC->Text.Length()> 12)
+	  edtBarcodeMAC->Text = "";
+	edt-> SelStart=edt-> Text.Length();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TUSBHIDForm::btnBarcodeClearClick(TObject *Sender)
+{
+	edtBarcodeMAC->Text = "";
+}
+//---------------------------------------------------------------------------
+bool TUSBHIDForm::FindIniFile()
+{
+	TSearchRec Sr;
+	TStringList*FileList=new TStringList();
+	cbDevName->Items->Clear();
+	AnsiString FILE_DUT_SET_INI = "INI\\"+Findfilemsg("INI\\Config.ini","DEV_NAME",1)+".ini";
+	if(FindFirst("INI\\*.ini",faAnyFile,Sr)==0)
+	{
+		do
+		{
+			FileList->Add(Sr.Name);
+			if(Sr.Name!="Config.ini")
+				cbDevName->Items->Add(Sr.Name.SubString(1,Sr.Name.Length()-4));
+		}
+		while(FindNext(Sr)==0);
+		FindClose(Sr);
+	}
+	for(int i =0;i<=cbDevName->Items->Count;i++)
+	{
+		if(FILE_DUT_SET_INI.Pos(cbDevName->Items->Strings[i]))
+		   cbDevName->ItemIndex = i;
+	}
+	if(FileList->Count==0)
+	{
+		delete FileList;
+		return false;
+	}
+	else
+	{
+		cbDevNameChange(NULL);
+		delete FileList;
+		return true;
+	}
+}
+
+
+void __fastcall TUSBHIDForm::cbDevNameChange(TObject *Sender)
+{
+	AnsiString FILE_DUT_SET_INI = "INI\\"+cbDevName->Text+".ini";
+	AnsiString SS;
+	if(FileExists(FILE_DUT_SET_INI))
+	{
+		if (FileExists(ChangeFileExt("INI\\"+cbDevName->Text, ".ini")))
+		{
+			TIniFile *ini;			ini = new TIniFile(ChangeFileExt("INI\\"+cbDevName->Text, ".ini"));			//BURN_SETTING			ckbBurnMAC->Checked = ini->ReadBool("BURN_SETTING", "BURN_MAC", false);			ckbAutoIncrease->Checked = ini->ReadBool("BURN_SETTING", "AUTO", false);			ckbBarcode->Checked = ini->ReadBool("BURN_SETTING", "BARCODE", false);			ckbBarcodeClick(NULL);			ckbBarcodeVerify->Checked = ini->ReadBool("BURN_SETTING", "BARCODE_VERIFY", false);			ckbBarcodeVerifyClick(NULL);			//BURN_CONTENT			mskedBurntMacPre->Text = ini->ReadString(_T("BURN_CONTENT"), _T("MAC_PREFIX"), _T("0"));			mskedtBurnMac->Text = ini->ReadString(_T("BURN_CONTENT"), _T("MAC_END"), _T("0"));			//Realtek			mskedtBurnSn->Text    = ini->ReadString(_T("Realtek"), _T("SN"), _T("000001"));			ckbRealtekDocking->Checked   = ini->ReadBool(_T("Realtek"), _T("DOCKING"), _T(false));			edtSPI_FLASH_EN->Text        = ini->ReadString(_T("Realtek"), _T("EFUSE_SPI_FLASH_EN"), _T("01"));			edtEEPROM_EN->Text           = ini->ReadString(_T("Realtek"), _T("EFUSE_EEPROM_EN"), _T("00"));			edtLED_SEL_CFG->Text         = ini->ReadString(_T("Realtek"), _T("EFUSE_LED_SEL_CFG"), _T("87F0"));			edtDocking->Text         	 = ini->ReadString(_T("Realtek"), _T("EFUSE_DOCKING"), _T("01"));			edtWorkOrderNumber->Text = ini->ReadString(_T("WorkOrder"), _T("WorkOrderNumber"), _T("000-00000000000"));			edtWorkStation->Text = ini->ReadString(_T("WorkOrder"), _T("WorkStation"), _T("A000"));			edtModel->Text = ini->ReadString(_T("WorkOrder"), _T("MODEL"), _T("TEST"));			//			//			SS = ini->ReadString(_T("EFuse Setting"), _T("SPI_FLASH_EN"), _T("01"));			ckbSPI_FLASH_EN->Caption = SS=="01" ? "√" : "";			SS = ini->ReadString(_T("EFuse Setting"), _T("EEPROM_EN"), _T("00"));			ckbEEPROM_EN->Caption = SS=="01" ? "√" : "";			SS = ini->ReadString(_T("EFuse Setting"), _T("NO_REMOTE_WAKEUP"), _T("00"));			ckbNO_REMOTE_WAKEUP->Caption = SS=="01" ? "√" : "";			SS = ini->ReadString(_T("EFuse Setting"), _T("ECM_FLOW_CONTROL"), _T("00"));			ckbECM_FLOW_CONTROL->Caption = SS=="01" ? "√" : "";			SS = ini->ReadString(_T("EFuse Setting"), _T("LAN_DIS"), _T("00"));			ckbLAN_DIS->Caption = SS=="01" ? "√" : "";			SS = ini->ReadString(_T("EFuse Setting"), _T("LINK_OK"), _T("00"));			ckbLINK_OK->Caption = SS=="01" ? "√" : "";			SS = ini->ReadString(_T("EFuse Setting"), _T("GPHY_FOLW_CONTROL"), _T("01"));			ckbGPHY_FLOW_CONTROL->Caption = SS=="01" ? "√" : "";			SS = ini->ReadString(_T("EFuse Setting"), _T("LED_SEL_CFG"), _T("787C"));			edtSetLED_SEL_CFG->Text = SS;			SS = ini->ReadString(_T("EFuse Setting"), _T("NWAY_LINK_CAPA"), _T("06"));			edtSetNWAY_LINK_CAPA->Text = SS;			SS = ckbSPI_FLASH_EN->Caption.Pos("√") ? "01":"00";
+			ini->WriteString(_T("EFuse Setting"), _T("EFUSE_SPI_FLASH_EN"), SS);
+			SS = ckbEEPROM_EN->Caption.Pos("√") ? "01":"00";
+			ini->WriteString(_T("EFuse Setting"), _T("EEPROM_EN"), SS);
+			SS = ckbNO_REMOTE_WAKEUP->Caption.Pos("√") ? "01":"00";
+			ini->WriteString(_T("EFuse Setting"), _T("NO_REMOTE_WAKEUP"), SS);
+			SS = ckbECM_FLOW_CONTROL->Caption.Pos("√") ? "01":"00";
+			ini->WriteString(_T("EFuse Setting"), _T("ECM_FLOW_CONTROL"), SS);
+			SS = ckbLAN_DIS->Caption.Pos("√") ? "01":"00";
+			ini->WriteString(_T("EFuse Setting"), _T("LAN_DIS"), SS);
+			SS = ckbLINK_OK->Caption.Pos("√") ? "01":"00";
+			ini->WriteString(_T("EFuse Setting"), _T("LINK_OK"), SS);
+			SS = ckbGPHY_FLOW_CONTROL->Caption.Pos("√") ? "01":"00";
+			ini->WriteString(_T("EFuse Setting"), _T("GPHY_FOLW_CONTROL"), SS);
+			SS = edtLED_SEL_CFG->Text;
+			ini->WriteString(_T("EFuse Setting"), _T("LED_SEL_CFG"), SS);			//			delete ini;
+		}
+	}
+}
+//---------------------------------------------------------------------------
+bool TUSBHIDForm::SetIniFile()
+{
+	TIniFile *ini;
+	ini = new TIniFile(ChangeFileExt("INI\\"+cbDevName->Text, ".ini"));
+
+	//Thired step. 儲存所有設定
+	AnsiString SS;
+	//BURN_SETTING
+	ini->WriteBool("BURN_SETTING", "BURN_MAC", ckbBurnMAC->Checked);
+	ini->WriteBool("BURN_SETTING", "AUTO", ckbAutoIncrease->Checked);
+	ini->WriteBool("BURN_SETTING", "BARCODE", ckbBarcode->Checked);
+	ini->WriteBool("BURN_SETTING", "BARCODE_VERIFY", ckbBarcodeVerify->Checked);
+	//BURN_CONTENT
+	ini->WriteString(_T("BURN_CONTENT"), _T("MAC_PREFIX"), mskedBurntMacPre->Text);
+	ini->WriteString(_T("BURN_CONTENT"), _T("MAC_END"), mskedtBurnMac->Text);
+	// Realtek
+	ini->WriteString(_T("Realtek"), _T("SN"), mskedtBurnSn->Text);
+	ini->WriteBool("Realtek", "DOCKING", ckbRealtekDocking->Checked);
+	ini->WriteString(_T("Realtek"), _T("EFUSE_SPI_FLASH_EN"), edtSPI_FLASH_EN->Text);
+	ini->WriteString(_T("Realtek"), _T("EFUSE_EEPROM_EN"), edtEEPROM_EN->Text);
+	ini->WriteString(_T("Realtek"), _T("EFUSE_LED_SEL_CFG"), edtLED_SEL_CFG->Text);
+	ini->WriteString(_T("Realtek"), _T("EFUSE_DOCKING"), edtDocking->Text);
+	//WorkOrder
+	ini->WriteString(_T("WorkOrder"), _T("WorkOrderNumber"), edtWorkOrderNumber->Text);
+	ini->WriteString(_T("WorkOrder"), _T("WorkStation"), edtWorkStation->Text);
+	ini->WriteString(_T("WorkOrder"), _T("MODEL"), edtModel->Text);
+	//
+	SS = ckbSPI_FLASH_EN->Caption.Pos("√") ? "01":"00";
+	ini->WriteString(_T("EFuse Setting"), _T("EFUSE_SPI_FLASH_EN"), SS);
+	SS = ckbEEPROM_EN->Caption.Pos("√") ? "01":"00";
+	ini->WriteString(_T("EFuse Setting"), _T("EEPROM_EN"), SS);
+	SS = ckbNO_REMOTE_WAKEUP->Caption.Pos("√") ? "01":"00";
+	ini->WriteString(_T("EFuse Setting"), _T("NO_REMOTE_WAKEUP"), SS);
+	SS = ckbECM_FLOW_CONTROL->Caption.Pos("√") ? "01":"00";
+	ini->WriteString(_T("EFuse Setting"), _T("ECM_FLOW_CONTROL"), SS);
+	SS = ckbLAN_DIS->Caption.Pos("√") ? "01":"00";
+	ini->WriteString(_T("EFuse Setting"), _T("LAN_DIS"), SS);
+	SS = ckbLINK_OK->Caption.Pos("√") ? "01":"00";
+	ini->WriteString(_T("EFuse Setting"), _T("LINK_OK"), SS);
+	SS = ckbGPHY_FLOW_CONTROL->Caption.Pos("√") ? "01":"00";
+	ini->WriteString(_T("EFuse Setting"), _T("GPHY_FOLW_CONTROL"), SS);
+	SS = edtLED_SEL_CFG->Text;
+	ini->WriteString(_T("EFuse Setting"), _T("LED_SEL_CFG"), SS);
+	delete ini;
+}

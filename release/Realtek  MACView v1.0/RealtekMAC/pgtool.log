@@ -1,0 +1,33 @@
+Power Status: AC Power
+Realtek, RTUNicPG, v.2.0.0.14,09/16/2015
+
+#00 Realtek USB GBE Family Controller #33 (00:00:00:00:00:00) - RTL8153VC - 00 00 00
+
+ --- Serial ---
+
+*** NicNumber = 0 ***
+This is RTL8153VC
+#0  Flash Manufacturer : 
+#0 MXIC
+#0  Flash ID : MX25L1606E
+EEPROM does not exist!!!
+--- Program Efuse --- 
+EFuse Write Count = 0
+
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+
+EFuse PG Version(CFG Version) = N/A
+EFuse Remain 186 Bytes!!!
+EFuse Write Count = 0
+PG EFuse is Successful!!!

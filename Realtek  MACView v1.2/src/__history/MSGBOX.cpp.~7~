@@ -1,0 +1,89 @@
+//---------------------------------------------------------------------------
+#include <vcl.h>
+#pragma hdrstop
+
+#include "MSGBOX.h"
+#include "Uint1.h"
+
+
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+TfrmMsg *frmMsg;
+//---------------------------------------------------------------------------
+__fastcall TfrmMsg::TfrmMsg(TComponent* Owner)
+	: TForm(Owner)
+{
+}
+//---------------------------------------------------------------------------
+void __fastcall TfrmMsg::btnID_okClick(TObject *Sender)
+{
+	if(edtSetWorkOrderNumber->Text=="")
+		MessageBoxA(NULL,"請輸入完整資訊","WARNING", MB_ICONEXCLAMATION);
+	else if(edtSetModel->Text=="")
+		MessageBoxA(NULL,"請輸入完整資訊","WARNING", MB_ICONEXCLAMATION);
+	else if(edtSetEmployeeID->Text=="")
+		MessageBoxA(NULL,"請輸入完整資訊","WARNING", MB_ICONEXCLAMATION);
+	else
+		ModalResult = mrOk;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfrmMsg::plSwitchClick(TObject *Sender)
+{
+	if(plSwitch->Caption=="V")
+	{
+		plSwitch->Caption = "^";
+		frmMsg->Height = 412;
+	}
+	else
+	{
+		plSwitch->Caption = "V";
+		frmMsg->Height = 229;
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall TfrmMsg::FormShow(TObject *Sender)
+{
+	if(frmMsg->Tag)
+	{
+		plWOInfo->Visible = false;
+		plSwitch->Visible = false;
+		TouchKeyboard->Visible = false;
+		frmMsg->Height = 164;
+		edtBarcodeMAC->SetFocus();
+	}
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmMsg::edtBarcodeMACChange(TObject *Sender)
+{
+	if(edtBarcodeMAC->Text.Length()>12)
+	{
+		edtBarcodeMAC->Text = edtBarcodeMAC->Text.Delete(1,12);
+		edtBarcodeMAC->SelStart=edtBarcodeMAC->Text.Length();
+	}
+	else if(edtBarcodeMAC->Text.Length()==12)
+	{
+		USBHIDForm->mskedtBurnSn->Text = edtBarcodeMAC->Text;
+		USBHIDForm->mskedBurntMacPre->Text = edtBarcodeMAC->Text.SubString(1,6);
+		USBHIDForm->mskedtBurnMac->Text = edtBarcodeMAC->Text.SubString(7,6);
+        ModalResult = mrOk;
+	}
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TfrmMsg::edtBarcodeMACKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
+{
+	if(Key == 8)
+	  edtBarcodeMAC->Text = "";
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfrmMsg::BitBtn2Click(TObject *Sender)
+{
+	edtBarcodeMAC->Text = "";
+	edtBarcodeMAC->SetFocus();
+}
+//---------------------------------------------------------------------------
+

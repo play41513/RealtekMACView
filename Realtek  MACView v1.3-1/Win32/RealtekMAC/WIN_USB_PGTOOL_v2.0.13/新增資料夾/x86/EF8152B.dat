@@ -1,0 +1,15 @@
+;Please set patch data up to 16 bytes for each line.
+
+##
+;BIT 0
+;RTL8152B(N)_RTL8150B_Driver_Note_v3.8_20200114
+;Efuse Patch 10/EEPROM Patch 9 : Fix Control Transfer-data Stage returns NAK.
+ExtPatch = 00 00 00 01
+5F F8 00 1B C2 40 71 9F 48 40 99 1F 48 40 99 14
+C2 40 61 90 49 0A F0 42 70 80 49 07 F0 80 48 42
+98 0A C2 5B F8 20 40 60 03 48 40 88 09 C2 08 18
+55 88 02 C0 00 B8 C2 09 28 D4 D4 C4 06 D4 00 B0
+00 00 41 fc 26 00 a0 27 ea 08 87 0c 00 00 28 fc
+83 00 40 C4 D4 01
+##
+

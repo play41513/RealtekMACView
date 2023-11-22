@@ -1,0 +1,9 @@
+參考下面連結的步驟
+http://delphi.ktop.com.tw/QuickSearch.exe/QuickView?topicid=55700
+(1)先在你安裝 DDK 的目錄之下，找到檔案「hid.lib」
+(2)然後在安裝 BCB 的目錄之下，找到檔案「coff2omf.exe」
+(3)把這兩個檔案放在同一個目錄之下，然後開啟一個 DOS BOX，
+     鍵入以下指令coff2omf hid.lib my_hid.lib
+(4)完成 (3) 之後，應該會產生檔案「my_hid.lib」
+(5)在 BCB 中，利用 Project Manager 把 (4) 的檔案 Add 到你的專案裡面，再重新編譯
+看看

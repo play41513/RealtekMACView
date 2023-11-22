@@ -1,0 +1,231 @@
+
+Usage:
+
+  RTUNicPG64 [/h][/?][/efuse | /eeprom | /flash][/s][/r][/w]
+             [/# NICNumber][/nodeid HexNODEID][/vidpid HexVID HexPID]
+             [/twsi | /93c46 | /93c56 | /93c66 | /eepsize HexLength]
+             [/cfgnchg][/manchg][/nicmac][/v][/vMAC][/d][/b][/cfgname]
+             [/barmac HexMACID][/mapmac][/fmac][/cpcfg CfgFileName]
+             [/efcpeep][/effreep][/eepfref][/lancfg HexCfgValue]
+             [/wr filename][/verify filename][/dump][/erase][/info]
+             [/rd SectorNumber][/er SectorNumber][/wrs SectorNumber filename]
+             [/rdb BlockNumber][/erb BlockNumber][/wrb BlockNumber filename]
+             [/nchkac][/nchkct][/nchkcs][/swrc][/cfgsnchg][/wrsn][/de]
+             [/bcddev HexBCDDev]
+             [/log][/rec][/mkiso]
+
+Option:
+
+  /? --- Display the help message
+  /h --- Display the help message
+
+  /efuse
+   --- Programming EFUSE
+       Example: /efuse
+
+  /eeprom
+   --- Programming EEPROM
+       Example: /eeprom
+
+  /flash
+   --- Programming FLASH
+       Example: /flash
+
+  /s --- Search Realtek NIC adapters
+
+  /w --- Write EEPROM or EFuse according to configuration file
+
+  /r --- Read EEPROM or EFuse content to standard output
+
+  /# NICnumber
+     --- Select one of Multi_NIC
+         If no NIC number selected, default use all NICs
+         Example: /# 0
+
+  /nodeid --- Write EEPROM or EFuse NODEID
+          --- NIC number must selected
+         Exapmle: /eeprom /# 0 /nodeid 00E04C360001
+         Exapmle: /efuse /# 1 /nodeid 00E04C360001
+
+  /vidpid --- Write EEPROM or EFuse VID and PID
+         Exapmle: /eeprom /vidpid 0BDA 8152
+         Exapmle: /efuse /vidpid 0BDA 8152
+
+  /twsi
+   --- The Sepcified EEPROM Type is TWSI
+       Example: /eeprom /twsi
+
+  /93c46
+   --- The Sepcified EEPROM Type is 93c46
+       Example: /eeprom /93c46
+
+  /93c56
+   --- The Sepcified EEPROM Type is 93c56
+       Example: /eeprom /93c56
+
+  /93c66
+   --- The Sepcified EEPROM Type is 93c66
+       Example: /eeprom /93c66
+
+  /eepsize
+   --- The Sepcified EEPROM size is user defined
+       Example: /eeprom /eepsize FF
+
+  /cfgnchg
+   --- Don't change configuration file
+
+  /manchg
+   --- Don't change MAC address
+
+  /nicmac
+   --- Use MAC address from adapter
+
+  /v
+   --- View adapter information
+
+  /vMAC
+   --- View MAC adapter information
+
+  /d
+   --- Dump Efuse/EEPROM content to map file
+       Exapmle: /efuse /d
+       Exapmle: /eeprom /d
+
+  /b
+   --- Dump Efuse/EEPROM/FLASH content to bin file
+       Exapmle: /efuse /b
+       Exapmle: /eeprom /b
+       Exapmle: /flash /b
+
+  /cfgname
+   --- Dump configuration file name
+
+  /barmac --- Write EEPROM or EFuse MAC address
+          PS. NIC number must selected
+          Exapmle: /eeprom /# 0 /barmac 00E04C360001
+          Exapmle: /efuse /# 1 /barmac 00E04C360001
+
+  /mapmac
+   --- Write MAC address from map file
+
+  /fmac
+   --- Write MAC address from txt file
+
+  /cpcfg CfgFileName 
+   --- Compare CfgFile with EEPROM/Efuse Content
+       Example: Compare Efuse content with a.cfg
+                /efuse /cpcfg a.cfg
+
+  /efcpeep
+   --- Compare Efuse and EEPROM Contetnt
+       Example: /efuse /efcpeep
+                /eeprom /efcpeep
+
+  /effreep
+   --- Write Efuse from EEPROM
+       Example: /efuse /effreep
+
+  /eepfref
+   --- Write EEPROM from Efuse
+                /eeprom /eepfref
+
+  /lancfg HexCfgValue
+   --- Set or Clear LAN configuration
+       BIT0 : LAN Disable
+       BIT1 : PHY Disable
+       BIT2 : Link OK
+       BIT31: Clear flag
+       PS. Add /nchkct is better for this case
+           LAN configuration is not defined at CFG file
+           set /nchkct to pass content check
+       Exapmle: /efuse /nchkct /lancfg 1
+       Exapmle: /efuse /nchkct /lancfg 80000001
+       Exapmle: /eeprom /nchkct /lancfg 5
+       Exapmle: /eeprom /nchkct /lancfg 80000005
+
+  /swrc --- Software re-connection after PG EEPROM or EFUSE.
+	   Exapmle: /eeprom /swrc
+	   Exapmle: /efuse /swrc
+
+  /wr "Iso file name"
+   --- Write Iso file Install packet to FLASH
+       Exapmle: /flash /wr IsoFileName
+
+  /verify "Iso file name"
+   --- Verify FLASH data from Iso file Install packet
+       Exapmle: /flash /verify IsoFileName
+
+  /dump --- dump Efuse, EEPROM or FLASH to log file
+
+  /erase --- Erase EEPROM to empty, keep eeprom status
+       Exapmle: /eeprom /erase
+
+  /info --- Obtain FLASH information
+
+  /rd SectorNumber
+   --- read FLASH sector number data to log file
+       Exapmle: /flash /rd 138
+
+  /er SectorNumber
+   --- erase FLASH sector data
+       Exapmle: /flash /er 138
+
+  /wrs SectorNumber filename
+   --- Write Iso file Install packet to FLASH
+       Only write the specific sector
+       Exapmle: /flash /wrs 138 IsoFileName
+
+  /rdb BlockNumber
+   --- read FLASH Block number data to log file
+       Exapmle: /flash /rdb 2
+
+  /erb BlockNumber
+   --- erase FLASH block data
+       Exapmle: /flash /erb 2
+
+  /wrb BlockNumber filename
+   --- Write Iso file Install packet to FLASH
+	   Only write the specific block
+	   Exapmle: /flash /wrb 2 IsoFileName
+
+  /nchkac
+   --- Bypass Check Power Status on Windows Platform
+
+  /nchkct
+   --- Bypass Check unknown content
+       Example: /efuse /r /nchkct
+       Example: /eeprom /r /nchkct
+
+  /nchkcs
+   --- Bypass Check customize string length
+       Example: /efuse /r /nchkcs
+       Example: /eeprom /r /nchkcs
+
+  /bcddev --- Write EEPROM or EFuse BCD Device
+         Exapmle: /eeprom /bcddev 3000
+         Exapmle: /efuse /bcddev 3000
+
+  /log
+   --- Dump error message to log file
+
+  /rec
+   --- Recovery content from error case
+
+  /idnt
+	--- Identify NIC, must select one NIC adapter
+	     Example: /# 0 /idnt
+
+  /mkiso "Iso file name"
+   --- Make Iso file from Install packet
+       Exapmle: /mkiso InstallerName
+
+  /cfgsnchg
+   --- Increase serial number to CFG files
+       Exapmle: /efuse /w /cfgsnchg
+       Exapmle: /eeprom /w /cfgsnchg
+
+  /wrsn
+   --- Force write serial number to Efuse or EEPROM
+	     Exapmle: /efuse /w /cfgsnchg /wrsn
+	     Exapmle: /eeprom /w /cfgsnchg /wrsn
+

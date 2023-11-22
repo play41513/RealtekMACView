@@ -1,0 +1,1 @@
+vcredist_x86.exe /uninstall /quiet /norestart
