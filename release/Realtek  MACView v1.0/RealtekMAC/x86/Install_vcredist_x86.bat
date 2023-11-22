@@ -1,1 +1,0 @@
-vcredist_x86.exe /install /quiet /norestart
