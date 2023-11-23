@@ -3,7 +3,7 @@
 
 ## Program
 
-### ScreenInfo v1.6
+### Realtek MACView v1.6
 - Notices :Copyright(c) 2023 Leno
 - Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342
 - OS :Windows 8 ver6.3 Build 9600
@@ -12,7 +12,7 @@
 	- Add detection for IC Name: RTL8156BG (EF8156BG).
 	- Add pgtool version released in 202208."
 
-### ScreenInfo v1.5
+### Realtek MACView v1.5
 - Notices :Copyright(c) 2022 Leno
 - Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342
 - OS :Windows 8 ver6.3 Build 9600
@@ -20,21 +20,21 @@
 	- No program modifications, add DS-UCF7 configuration file.
 	- In the installation file, include the 'Install_USB_Win10_10045.20_03302021' driver installation."
 
-### ScreenInfo v1.4-1
+### Realtek MACView v1.4-1
 - Notices :Copyright(c) 2022 Leno
 - Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342
 - OS :Windows 8 ver6.3 Build 9600
 - Desc :
 	- Change the employee ID determination rules.
 
-### ScreenInfo v1.3-1
+### Realtek MACView v1.3-1
 - Notices :Copyright(c) 2022 Leno
 - Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342
 - OS :Windows 8 ver6.3 Build 9600
 - Desc : 
 	- Change the employee ID determination rules.
 
-### ScreenInfo v1.4
+### Realtek MACView v1.4
 - Notices :Copyright(c) 2021 Leno
 - Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342
 - OS :Windows 8 ver6.3 Build 9600
@@ -43,7 +43,7 @@
 	- Add detection for IC Name: RTL8156B (EF8156B).
 	- Add pgtool version released on 20200214."
 
-### ScreenInfo v1.3
+### Realtek MACView v1.3
 - Notices :Copyright(c) 2020 Leno
 - Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342
 - OS :Windows 8 ver6.3 Build 9600
@@ -54,7 +54,7 @@
 	- Move the barcode scanning confirmation box to the work order screen, add MAC upper and lower limit input boxes.
 	- Display error message when LOG writing fails; show error message box for USB drive LOG writing failure."
 
-### ScreenInfo v1.2
+### Realtek MACView v1.2
 - Notices :Copyright(c) 2019 Leno
 - Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342
 - OS :Windows 8 ver6.3 Build 9600
@@ -66,7 +66,7 @@
 		-- IC Name: RTL8153vC (EF8153vC)、RTL8158vA (EF8158vA)
 	- Change USB speed protocol retrieval from devcon to winapi."
 
-### ScreenInfo v1.1
+### Realtek MACView v1.1
 - Notices :Copyright(c) 2019 Leno
 - Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342
 - OS :Windows 8 ver6.3 Build 9600
@@ -74,7 +74,7 @@
 	- Remove the log-to-USB drive feature.
 	- Add a 3-second delay to confirm the 'device removed' status.
 
-### ScreenInfo v1.0
+### Realtek MACView v1.0
 - Notices :Copyright(c) 2019 Leno
 - Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342
 - OS :Windows 8 ver6.3 Build 9600
