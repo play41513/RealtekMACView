@@ -1,0 +1,29 @@
+;Please set patch data up to 16 bytes for each line.
+;Please set 4 bytes alignment for each OTP command. Padding to high bytes.
+
+##
+;BIT 0
+;DN_v4_20200820
+;Patch note 4: EEEP Disable and Down frequency
+ExtPatch = 00 00 00 01
+CRC32 = DB D9 2E 88
+20 E0 80 00 20 E0 CB 40
+##
+
+##
+;BIT 1
+;DN_v4_20201027
+;Patch note 14: Dash disable
+ExtPatch = 00 00 00 02
+CRC32 = 84 CB B7 D5
+20 E8 E0 13 23 E8 E4 08 11 42 80 00
+##
+
+##
+;BIT 2
+;DN_v6_20220613
+;Unconfig 100M capability
+ExtPatch = 00 00 00 04
+CRC32 = 8F D1 80 06
+40 D3 2A 7F
+##

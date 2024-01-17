@@ -1,0 +1,43 @@
+;Please set patch data up to 16 bytes for each line.
+
+##
+;BIT 0
+;DN_v2.6_20210128
+;Patch note 25 : Update USB PHASE2 u1_residency_timer to 4us
+ExtPatch = 00 00 00 01
+CRC32 = 85 10 98 64
+40 CD 73 04
+##
+
+##
+;BIT 1
+;DN_v1.0_20200724
+;Patch note 9 : USB-IF
+ExtPatch = 00 00 00 02
+CRC32 = 60 95 B0 8A
+40 B4 60 00 40 cf ef 48
+##
+
+##
+;BIT 2
+;DN_v3.2_20210616
+;Patch note 26 : For HP 40pin lanwake_en patch
+ExtPatch = 00 00 00 04
+CRC32 = D0 28 0C 93
+21 F8 06 1A E0 3F F8 3A 15 C0 00 71 14 C0 08 40
+0B F1 0F C0 00 72 50 32 17 48 16 48 00 99 06 71
+11 48 06 99 00 9A 04 C0 2D F8 5A 02 C1 00 B9 C0
+0B 12 FC 1C E8 A0 D3 19 67 21 FC 2E BE 0B 20 FC
+48 09 21 D3 A0 19 67
+##
+
+##
+;BIT 3
+;DN_v4.2_20211228
+;Patch note 27 : Disable TestIO
+ExtPatch = 00 00 00 08
+CRC32 = 39 59 EF C4
+41 e6 00 10 e0 45 e6 20 02 c0 00 b8 20 24 41 d3
+00 1e 24 40 d3 20 01 20 e8 4c 10
+##
+

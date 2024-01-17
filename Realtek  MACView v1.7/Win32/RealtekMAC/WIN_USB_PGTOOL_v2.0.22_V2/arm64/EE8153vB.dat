@@ -1,0 +1,10 @@
+;Please set patch data up to 16 bytes for each line.
+
+##
+;BIT 0
+;DN_v7.0_20201209
+;Bypass UEFI clear Lanwakeb
+ExtPatch = 00 00 00 01
+CRC32 = 0D 06 03 6D
+40 CF 06 80
+##

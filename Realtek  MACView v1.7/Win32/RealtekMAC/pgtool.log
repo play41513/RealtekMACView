@@ -1,0 +1,58 @@
+Power Status: AC Power
+Realtek, RTUNicPG, v.2.0.0.14,09/16/2015
+
+#00 Realtek USB GBE Family Controller #28 (00:00:00:00:00:00) - RTL8153VC - 00 00 00
+
+ --- Serial ---
+
+*** NicNumber = 0 ***
+This is RTL8153VC
+#0  Flash Manufacturer : 
+#0 MXIC
+#0  Flash ID : MX25L1606E
+EEPROM does not exist!!!
+--- Program Efuse --- 
+EFuse Write Count = 0
+Num Of Chaged Item = 0x7
+Program 46 Bytes to EFuse.
+---Clear conflict parameter in Efuse---
+ Clear Efuse: SPI_FLASH_EN
+Efuse clear para - 0x1
+ Clear Efuse: LED_SEL_CFG
+Efuse clear para - 0x1
+ Clear Efuse: GPHY_FLOW_CTRL
+Efuse clear para - 0x4
+---Write Cfg file to EFuse---
+ Write NODEID to EFuse
+RTUNicPG : (CFG MAC) 00249B000005
+RTUNicPG : 1d1a7a, 12faa8, 9
+
+RTUNicPG :  25 C0 00 00 24 9B 00 00 05 00 00
+RTUNicPG :  25 C0 00 00 24 9B 00 00 05 00 00
+RTUNicPG : lastEndByte = 9, lastMatchByte = 0 
+RTUNicPG : Index = 6, StartIndex = 0 
+RTUNicPG : (NIC MAC) 00249B000005
+ Write SPI_FLASH_EN to EFuse
+ Write EEPROM_EN to EFuse
+ Write LED_SEL_CFG to EFuse
+ Write SN to EFuse
+RTUNicPG :  (CFG SN) FF 0E 03 30 30 30 30 30 35
+RTUNicPG : 1d1a7a, 12fab0, c
+
+RTUNicPG :  48 C4 B8 FF 0E 03 30 30 30 30 30 35 00 00
+RTUNicPG :  48 C4 B8 FF 0E 03 30 30 30 30 30 35 00 00
+RTUNicPG : lastEndByte = 22, lastMatchByte = 16 
+RTUNicPG : Index = 9, StartIndex = 0 
+RTUNicPG :  (NIC SN) FF 0E 03 30 30 30 30 30 35
+ Write GPHY_FLOW_CTRL to EFuse
+ Write VERSION_INFO to EFuse
+NODEID = 00 24 9B 00 00 05
+EFUSE_SPI_FLASH_EN = 01
+EFUSE_EEPROM_EN = 00
+EFUSE_LED_SEL_CFG = 87 F0
+SN = 00 00 05
+EFUSE_GPHY_FLOW_CTRL = 01
+EFuse PG Version(CFG Version) = V2.00(1.009) 
+EFuse Remain 140 Bytes!!!
+EFuse Write Count = 1
+PG EFuse is Successful!!!

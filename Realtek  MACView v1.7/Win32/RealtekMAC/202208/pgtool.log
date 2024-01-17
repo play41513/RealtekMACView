@@ -1,0 +1,47 @@
+Realtek, RTUNicPG64.exe, v2.0.19.5,08/02/2022
+
+Power Status: AC Power
+#00 Realtek USB GbE Family Controller (00:24:9B:27:00:77) - RTL8153BvB - 03 - 00 00 24 - 0002 - 0003 - 02
+
+ --- Serial ---
+
+*** NicNumber = 0 ***
+This is RTL8153BvB
+Please update driver ...
+#0  Flash Manufacturer : 
+#0 Unknown Manufacturer
+#0  Flash Manufacturer ID : 0xFFFF
+#0  Flash Device ID : 0xFF
+EEPROM does not exist!!!
+--- Program Efuse --- 
+EFuse Write Count = 2
+Nic CFG version = 1029,PG tool CFG verion  = 1028
+CFG file version older than in chip version
+Please update PG tool !!!
+Nic PG version = 2.22,PG Tool PG verion  = 2.19
+PG tool version older than in chip version
+Prefer to update PG tool !!!
+
+60 22 08 37 40 D8 23 99 40 D8 27 00 60 07 16 60 
+25 C0 00 00 24 9B 27 00 25 20 E8 3C 07 21 DD 90 
+87 00 00 00 00 00 4B C4 B8 FF 14 03 30 30 31 30 
+30 30 30 32 34 80 A4 08 0D E1 80 A4 32 08 00 23 
+E8 18 15 02 05 04 20 C0 05 77 23 E8 18 16 02 05 
+04 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FC 
+
+EFUSE_NODEID = 00 24 9B 27 00 77
+EFUSE_EEPROM_EN = 00
+EFUSE_LED_SEL_CFG = 87 00
+EFUSE_SN = 00 00 24
+EFUSE_GPHY_FLOW_CTRL = 01
+EFUSE_CTAPSHORT = 00
+EFuse PG Version(CFG Version) = V2.21(1.029)  V2.22(1.029) 
+EFuse Remain 105 Bytes!!!
+EFuse Write Count = 2
+PG EFuse is Successful!!!

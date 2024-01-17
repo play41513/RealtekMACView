@@ -3,6 +3,14 @@
 
 ## Program
 
+### Realtek MACView v1.7
+- Notices :Copyright(c) 2024 Leno
+- Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342
+- OS :Windows 8 ver6.3 Build 9600
+- Desc :
+	- Added MAC address burning for RTL8153BvB IC.
+	- Installer now includes automatic installation of Realtek network card drivers.
+
 ### Realtek MACView v1.6
 - Notices :Copyright(c) 2023 Leno
 - Compiler :Embarcadero RAD Studio 2010 Version 14.0.3615.26342

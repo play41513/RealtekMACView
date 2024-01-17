@@ -1,0 +1,29 @@
+;Please set patch data up to 16 bytes for each line.
+
+##
+;BIT 0
+;DN
+;Disable Test IO
+ExtPatch = 00 00 00 01
+CRC32 = A8 32 AA DE
+20 e8 4c 10
+##
+
+##
+;BIT 1
+;DN_v2.2_20211116
+;Patch Note 29: USB IF
+ExtPatch = 00 00 00 02
+CRC32 = 7E 1F 63 B7
+40 b4 60 00 40 cf ef 48 40 CF FC 40
+##
+
+##
+;BIT 2
+;DN_v4.9_20220505
+;Patch Note 35
+;Compound device(self powered)
+ExtPatch = 00 00 00 04
+CRC32 = 84 78 E6 04
+40 CF CE 11
+##

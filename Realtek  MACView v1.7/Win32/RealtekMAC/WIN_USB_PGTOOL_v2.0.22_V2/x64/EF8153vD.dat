@@ -1,0 +1,11 @@
+;Please set patch data up to 16 bytes for each line.
+
+##
+;BIT 0
+;DN_v1.1
+;Enable USB-IF Test
+ExtPatch = 00 00 00 01
+CRC32 = 49 5D 04 78
+40 B4 60 00 40 cf ef 48
+##
+

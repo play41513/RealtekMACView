@@ -1,0 +1,76 @@
+;Please set patch data up to 16 bytes for each line.
+;Please set 4 bytes alignment for each OTP command. Padding to high bytes.
+
+##
+;BIT 0
+;DN_v3.5_20200313
+;CD-ROM Patch
+ExtPatch = 00 00 00 01
+CRC32 = C4 53 DB 9B
+47 CC 28 00 00 00 00 00 00 00 00
+##
+
+##
+;BIT 1
+;DN_v9.0_20221018
+;Patch note 10: USB IF Patch
+ExtPatch = 00 00 00 02
+CRC32 = 1E 6D AF A5
+40 B4 60 00 40 CF EF 48 41 D8 24 57 c1
+##
+
+##
+;BIT 2
+;DN_v3.6_20200317
+;Patch note 9: Enable compound device
+ExtPatch = 00 00 00 04
+CRC32 = 84 78 E6 04
+40 CF CE 11
+##
+
+##
+;BIT 3
+;DN_v4.0_20200416
+;Patch note 13
+ExtPatch = 00 00 00 08
+CRC32 = 52 9D BB 3E
+42 CF DC 20 00 64 41 d8 22 98 b3 40 d8 23 a3 40
+d8 23 b3 A0 1B 80 BD 40 82 80 80 BD 38 50 78 80
+BD 38 40 78 60 24 45 70 60 26 86 0A
+##
+
+##
+;BIT 4
+;DN_v4.3_20200527
+;Patch note 14
+ExtPatch = 00 00 00 10
+CRC32 = 5B 80 9A 5A
+40 b4 81 13 60 20 70 7a 60 21 80 46 60 2f 85 08
+##
+
+##
+;BIT 5
+;DN_v4.4_20200630
+;Patch note 15
+ExtPatch = 00 00 00 20
+CRC32 = A0 BA 75 B3
+40 D4 EE 00
+##
+
+##
+;BIT 6
+;Patch note 11: Force super speed
+ExtPatch = 00 00 00 40
+CRC32 = 43 FE 73 D3
+40 CF EF 41
+##
+
+##
+;BIT 7
+;DN_v8.5_20220613
+;Unconfig 100M capability
+ExtPatch = 00 00 00 80
+CRC32 = EC 10 D4 99
+40 D3 2A 7F
+##
+

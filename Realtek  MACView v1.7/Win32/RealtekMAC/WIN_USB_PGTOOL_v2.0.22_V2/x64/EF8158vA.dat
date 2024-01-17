@@ -1,0 +1,47 @@
+;Please set patch data up to 16 bytes for each line.
+
+##
+;BIT 0
+;DN_v5.3_20190531
+;Patch 20 : Fix Auto Install compatibility issue.
+;If program Spi Flash enable, it is recommended to set this patch.
+ExtPatch = 00 00 00 01
+CRC32 = 70 88 26 9F
+5f e6 00 02 E0 0E E0 0C C0 06 61 92 49 05 F1 07
+C0 02 C1 00 B9 A4 24 02 C1 00 B9 CE 24 20 E4 00
+D4 07 C0 4f e6 20 1E 74 DC 30 05 C0 02 C1 00 B9
+A4 48 80 CB 00 DC 41 fc 26 00 a0 40 cf cd 49 43
+d3 00 a2 24 a2 48 40 d3 20 03
+##
+
+##
+;BIT 1
+;DN_v7.0_20210114
+;Patch 23 : USB 2.0 compatibility issue. Rx Detect patch.
+ExtPatch = 00 00 00 02
+CRC32 = A9 5E 1F B6
+40 cf ca af 40 D4 A4 00 5F E6 00 02 E0 0C E0 0A
+C4 01 1D 80 8D E5 8E E5 64 C0 48 E5 8C 02 C4 00
+BC 8C 06 20 B4 08 C2 04 19 46 89 4B E6 20 11 19
+41 89 02 C2 00 BA 9A 16 04 E4 41 fc 26 00 a0 40
+cf cd 49 43 d3 00 74 06 94 16 40 d3 20 03
+##
+
+##
+;BIT 2
+;DN_v7.5_20210923
+;Patch 24: Compound device self powered.
+ExtPatch = 00 00 00 04
+CRC32 = 84 78 E6 04
+40 CF CE 11
+##
+
+##
+;BIT 3
+;DN_v7.6_20210928
+;Patch 25: Cisco device only
+ExtPatch = 00 00 00 08
+CRC32 = 2F 0E FE B7
+A0 B2 A1 2C
+##
+
